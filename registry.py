@@ -458,6 +458,14 @@ for more detail on garbage collection read here:
         metavar='N')
 
     parser.add_argument(
+        '--num-ignores-keep',
+        help=('If specified kept images not includes calculated last {0} tags '
+              ).format(CONST_KEEP_LAST_VERSIONS),
+        action='store_const',
+        default=False,
+        const=True)
+
+    parser.add_argument(
         '--debug',
         help=('Turn debug output'),
         action='store_const',
@@ -837,8 +845,14 @@ def main_loop(args):
             if args.delete_all:
                 tags_list_to_delete = list(tags_list)
             else:
-                ordered_tags_list = get_ordered_tags(registry, image_name, tags_list, args.order_by_date)
+                if args.num_ignores_keep:
+                    temp_tags = tags_list - set(keep_tags) # only process those things not in keep_tags
+                else:
+                    temp_tags = tags_list
+                ordered_tags_list = get_ordered_tags(registry, image_name, temp_tags, args.order_by_date)
                 tags_list_to_delete = ordered_tags_list[:-keep_last_versions]
+                if DEBUG:
+                    print("Last so many entries: {}".format(str(ordered_tags_list[-keep_last_versions:])))
 
                 # A manifest might be shared between different tags. Explicitly add those
                 # tags that we want to preserve to the keep_tags list, to prevent
